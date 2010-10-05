@@ -1,0 +1,15 @@
+package com.hovercatsw.alistair.jscheme.parser;
+
+public enum Lexeme
+{
+	INTEGER_CONSTANT,
+	REAL_CONSTANT,
+	BOOLEAN_TRUE_CONSTANT,
+	BOOLEAN_FALSE_CONSTANT,
+	STRING_CONSTANT,
+	SYMBOL_CONSTANT,
+	QUOTE,
+	LPAREN,
+	RPAREN,
+	EOF
+};
