@@ -32,4 +32,9 @@ public class Scope
 		else
 			return null;
 	}
+
+	public Scope getEnclosingScope()
+	{
+		return enclosingScope;
+	}
 }
