@@ -85,4 +85,14 @@ public class Lexer
 		next();
 		return currentLexeme();
 	}
+
+	public boolean eat(Lexeme lexeme)
+	{
+		if (lexeme == currentLexeme())
+		{
+			next();
+			return true;
+		}
+		return false;
+	}
 }
