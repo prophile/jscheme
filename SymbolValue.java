@@ -1,6 +1,6 @@
 package com.hovercatsw.alistair.jscheme;
 
-public class SymbolValue extends BasicValue
+public class SymbolValue extends Value
 {
 	private String actualValue;
 
@@ -9,7 +9,7 @@ public class SymbolValue extends BasicValue
 		actualValue = value;
 	}
 
-	String getValue()
+	String getName()
 	{
 		return actualValue;
 	}
