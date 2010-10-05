@@ -17,7 +17,7 @@ public class Scope
 		enclosingScope = enclosing;
 	}
 
-	public void put(String key, Value val)
+	public void bind(String key, Value val)
 	{
 		variables.put(key, val);
 	}
