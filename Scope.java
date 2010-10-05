@@ -2,7 +2,7 @@ package com.hovercatsw.alistair.jscheme;
 
 import java.util.HashMap;
 
-public class Scope
+class Scope
 {
 	private Scope enclosingScope;
 	private HashMap<String, Value> variables = new HashMap<String, Value>();
