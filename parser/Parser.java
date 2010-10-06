@@ -43,7 +43,7 @@ public class Parser
 			case Lexeme.QUOTE:
 				{
 					ArrayList<Value> listValue = new ArrayList<Value>;
-					listValue.add(new SymbolValue("quote"));
+					listValue.add(new SymbolValue("__builtin_quote"));
 					lexer.advance();
 					listValue.add(parseSValue());
 					returnValue = new ListValue(listValue);
