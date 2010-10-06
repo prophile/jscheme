@@ -8,11 +8,160 @@ public class Evaluator
 	private Scope globalScope;
 	private Scope localScope;
 
+	private void bindBuiltin(String name, BuiltinCallback callback, String... args)
+	{
+		ArrayList<String> parameters = new ArrayList<String>();
+		for (String arg : args)
+			parameters.add(arg);
+		BuiltinValue builtin = new BuiltinValue(callback);
+		LambdaValue lambda = new LambdaValue(parameters, builin);
+		declare(name, lambda);
+	}
+
+	private void bindCAR()
+	{
+		bindBuiltin("__builtin_car", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				ListValue list = (ListValue)evaluator.lookup("__list");
+				return list.firstValue();
+			}
+		}, "__list");
+	}
+
+	private void bindCDR()
+	{
+		bindBuiltin("__builtin_cdr", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				ListValue list = (ListValue)evaluator.lookup("__list");
+				return list.trailingValues();
+			}
+		}, "__list");
+	}
+
+	private void bindCONS()
+	{
+		bindBuiltin("__builtin_car", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value base = evaluator.lookup("__car");
+				ListValue list = (ListValue)evaluator.lookup("__cdr");
+				return new ListValue(base, list);
+			}
+		}, "__car", "__cdr");
+	}
+
+	private void bindIf()
+	{
+		bindBuiltin("__builtin_if", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value condition, lhs, rhs;
+				condition = evaluator.lookup("__condition");
+				lhs       = evaluator.lookup("__lhs");
+				rhs       = evaluator.lookup("__rhs");
+				condition = evaluator.evaluate(condition);
+				BooleanValue bcondition = (BooleanValue)condition;
+				return bcondition.getValue() ? lhs : rhs;
+			}
+		}, "__condition", "__lhs", "__rhs");
+	}
+
+	private void bindLambda()
+	{
+		bindBuiltin("__builtin_lambda", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value parameters, body;
+				parameters = evaluator.lookup("__parameters");
+				body       = evaluator.lookup("__body");
+				ArrayList<String> variables = new ArrayList<String>();
+				for (Value val : (ListValue)parameters)
+				{
+					variables.add(((SymbolValue)val).getName());
+				}
+				return new LambdaValue(variables, body);
+			}
+		}, "__parameters", "__body");
+	}
+
+	private void bindDefine()
+	{
+		bindBuiltin("__builtin_define", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value key, value;
+				key   = evaluator.lookup("__key");
+				value = evaluator.lookup("__value");
+				SymbolValue keySym = (SymbolValue)key;
+				evaluator.bind(key, evaluator.evaluate(value));
+				return value;
+			}
+		}, "__key", "__value");
+	}
+
+	private void bindSet()
+	{
+		bindBuiltin("__builtin_set!", new BuiltinCallback() {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value key, value;
+				key   = evaluator.lookup("__key");
+				value = evaluator.lookup("__value");
+				SymbolValue keySym = (SymbolValue)key;
+				evaluator.set(key, evaluator.evaluate(value), 1);
+				return value;
+			}
+		}, "__key", "__value");
+	}
+
+	private void bindStdOut()
+	{
+		bindBuiltin("__builtin_stdout", new BuiltinCallback {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value message;
+				String output;
+				message = evaluator.lookup("__message");
+				if (message instanceof StringValue)
+					output = ((StringValue)message).getValue();
+				else if (message instanceof SymbolValue)
+					output = ((SymbolValue)message).getName();
+				else if (message instanceof IntegerValue)
+					output = "" + ((IntegerValue)message).getValue();
+				else if (message instanceof RealValue)
+					output = "" + ((RealValue)message).getValue();
+				else if (message instanceof BooleanValue)
+					output = ((BooleanValue)message).getValue() ? "#t" : "#f";
+				return value;
+			}
+		}, "__message");
+	}
+
+	private void bindQuote()
+	{
+		bindBuiltin("__builtin_quote", new BuiltinCallback {
+			public Value evaluateBuiltin(Evaluator evaluator, BuiltinValue value) {
+				Value val = evaluator.lookup("__value");
+				if (val instanceof BasicValue)
+					return val;
+				else
+					return new QuotedValue(val);
+			}
+		}, "__value");
+	}
+
+	private void bindBuiltins()
+	{
+		bindIf();
+		bindLambda();
+		bindDefine();
+		bindSet();
+		bindStdOut();
+		bindQuote();
+		bindCONS();
+		bindCAR();
+		bindCDR();
+	}
+
 	public Evaluator()
 	{
 		globalScope = new Scope();
 		localScope  = new Scope(globalScope);
-		// bind builtins here
+		bindBuiltins();
 	}
 
 	public void pushScope()
@@ -30,9 +179,20 @@ public class Evaluator
 		getGlobalScope().bind(name, value);
 	}
 
+	public void set(String name, Value value, int level)
+	{
+		Scope target = getCurrentLocalScope();
+		while (level > 0)
+		{
+			target = target.getEnclosingScope();
+			--level;
+		}
+		target.bind(name, value);
+	}
+
 	public void set(String name, Value value)
 	{
-		getCurrentLocalScope().bind(name, value);
+		set(name, value, 0);
 	}
 
 	public Value lookup(String name)
